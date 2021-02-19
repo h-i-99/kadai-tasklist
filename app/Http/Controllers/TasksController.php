@@ -45,6 +45,7 @@ class TasksController extends Controller
     {
         // バリデーション
         $request->validate([
+            'content' => 'required',
             'status' => 'required|max:10',
         ]);
         
@@ -99,6 +100,7 @@ class TasksController extends Controller
     {
         // バリデーション
         $request->validate([
+            'content' => 'required',
             'status' => 'required|max:10',
         ]);
 
