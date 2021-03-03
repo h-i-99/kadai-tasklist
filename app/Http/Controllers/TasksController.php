@@ -15,11 +15,16 @@ class TasksController extends Controller
      */
     public function index()
     {
-        // タスク一覧を作成
-        $tasks = Task::all();
+        $tasks = [];
+        if (\Auth::check()) {
+            // 認証済みユーザを取得
+            $user = \Auth::user();
+            // ユーザーのタスクを取得
+            $tasks = $user->tasks()->get();
+        }
         
         // タスク一覧ビューで表示
-        return view('tasks.index', ['tasks' => $tasks]);
+        return view('welcome', ['tasks' => $tasks]);
     }
 
     /**
@@ -50,10 +55,10 @@ class TasksController extends Controller
         ]);
         
         // タスクを作成
-        $task = new Task;
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
+        $request->user()->tasks()->create([
+            'content' => $request->content,
+            'status' => $request->status,
+        ]);
         
         // 一覧ページへリダイレクト
         return redirect('/');
@@ -70,8 +75,13 @@ class TasksController extends Controller
         // タスクを取得
         $task = Task::findOrFail($id);
         
-        // 詳細ページを表示
-        return view('tasks.show', ['task' => $task]);
+        if (\Auth::user()->id == $task->user_id) {
+            // 認証ユーザとタスク所有ユーザが一致する場合は、詳細ページを表示
+            return view('tasks.show', ['task' => $task]);
+        }
+
+        // ユーザが不一致の場合は一覧ページへリダイレクト
+        return redirect('/');
     }
 
     /**
@@ -85,8 +95,13 @@ class TasksController extends Controller
         // タスク取得
         $task = Task::findOrFail($id);
         
-        // タスク編集ページを表示
-        return view('tasks.edit', ['task' => $task]);
+        if (\Auth::user()->id == $task->user_id) {
+            // 認証ユーザとタスク所有ユーザが一致する場合は、編集ページを表示
+            return view('tasks.edit', ['task' => $task]);
+        }
+
+        // ユーザが不一致の場合は一覧ページへリダイレクト
+        return redirect('/');
     }
 
     /**
@@ -107,10 +122,14 @@ class TasksController extends Controller
         // タスク取得
         $task = Task::findOrFail($id);
         
-        // タスク更新
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
+        if (\Auth::user()->id == $task->user_id) {
+            // 認証ユーザとタスク所有ユーザが一致する場合は更新
+            $task->content = $request->content;
+            $task->status = $request->status;
+            $task->save();
+        } else {
+            // ユーザ不一致（不正リクエスト）の場合は403エラーを表示したい
+        }
         
         // 一覧ページへリダイレクト
         return redirect('/');
@@ -126,10 +145,14 @@ class TasksController extends Controller
     {
         // タスク取得
         $task = Task::findOrFail($id);
-        
-        // タスク削除
-        $task->delete();
-        
+
+        if (\Auth::user()->id == $task->user_id) {
+            // タスク削除
+            $task->delete();
+        } else {
+            // ユーザ不一致（不正リクエスト）の場合は403エラーを表示したい
+        }
+
         // 一覧ページへリダイレクト
         return redirect('/');
     }
